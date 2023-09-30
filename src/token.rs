@@ -2,7 +2,7 @@ use std::fmt;
 use std::fmt::{Formatter};
 
 #[derive(Debug, PartialEq, Clone)]
-enum Token {
+pub enum Token {
     Illegal,
     EOF,
 
