@@ -9,6 +9,8 @@ pub enum Token {
     //Identifiers + literals
     Ident(String),
     Integer(i32),
+    Bool(bool),
+
 
     //Operators
     Assign, // =
@@ -23,8 +25,11 @@ pub enum Token {
     RBrace, // }
 
     //Keywords
-    Function,
+    Fn,
     Let,
+    If,
+    Else,
+    Ret
 }
 
 impl fmt::Display for Token {
@@ -40,7 +45,7 @@ impl fmt::Display for Token {
             Token::RParen => write!(f, "{}", ")"),
             Token::LBrace => write!(f, "{}", "{"),
             Token::RBrace => write!(f, "{}", "}"),
-            Token::Function => write!(f, "{}", "fn"),
+            Token::Fn => write!(f, "{}", "fn"),
             Token::Let => write!(f, "{}", "let"),
             token => write!(f, "{:?}", token),
         }
