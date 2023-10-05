@@ -1,3 +1,4 @@
+use std::io::ErrorKind::TimedOut;
 use crate::token::Token;
 
 #[derive(Default)]
@@ -22,10 +23,33 @@ impl Lexer {
         self.skip_whitespace();
         println!("{}", self.ch);
         let token = match self.ch {
-            '=' => Token::Assign,
+            '=' => {
+                if self.peak_char() == '=' {
+                    self.read_char();
+                    Token::Eq
+                } else {
+                    Token::Assign
+                }
+            }
+            '!' => {
+                if self.peak_char() == '=' {
+                    self.read_char();
+                    Token::NotEq
+                } else {
+                    Token::Bang
+                }
+            }
+            '-' => Token::Minus,
+            '/' => Token::Slash,
+            '*' => Token::Asterisk,
+            '<' => Token::LT,
+            '>' => Token::GT,
             ';' => Token::Semicolon,
             '(' => Token::LParen,
             ')' => Token::RParen,
+            '[' => Token::LBracket,
+            ']' => Token::RBracket,
+            ':' => Token::Colon,
             ',' => Token::Comma,
             '+' => Token::Plus,
             '{' => Token::LBrace,
@@ -79,13 +103,20 @@ impl Lexer {
         self.read_position += 1;
     }
 
+    fn peak_char(&self) -> char {
+        if self.read_position >= self.input.len() {
+            '0'
+        } else {
+            self.input[self.read_position]
+        }
+    }
     fn read_numeric(&mut self) -> i32 {
         let pos = self.position;
         while self.ch.is_digit(10) {
             self.read_char();
         }
         let end = self.position;
-        self.read_position-=1; // ???
+        self.read_position -= 1; // ???
         self.input[pos..end]
             .iter()
             .collect::<String>().parse::<i32>().expect("Unexpected char in number seq")
@@ -102,34 +133,80 @@ mod tests {
 
     #[test]
     fn test_tokenize_delimiters() {
-        let input = "=+(){},;";
+        let input = "(){}[],;:";
         let mut tokens = Lexer::new(input);
 
         let expected = vec![
-            Token::Assign,
-            Token::Plus,
             Token::LParen,
             Token::RParen,
             Token::LBrace,
             Token::RBrace,
+            Token::LBracket,
+            Token::RBracket,
             Token::Comma,
             Token::Semicolon,
+            Token::Colon,
+            Token::EOF,
         ];
 
-        for token_expected in &expected {
+        for token_expected in expected.iter() {
             let token = tokens.next_token();
             assert_eq!(&token, token_expected);
         }
     }
 
     #[test]
-    fn test_tokenize_code_example() {
+    fn test_tokenize_operators() {
+        let input = "+ = == ! != - / * < >";
+        let mut tokens = Lexer::new(input);
+
+        let expected = vec![
+            Token::Plus,
+            Token::Assign,
+            Token::Eq,
+            Token::Bang,
+            Token::NotEq,
+            Token::Minus,
+            Token::Slash,
+            Token::Asterisk,
+            Token::LT,
+            Token::GT,
+            Token::EOF,
+        ];
+
+        for token_expected in expected.iter() {
+            let token = tokens.next_token();
+            assert_eq!(&token, token_expected);
+        }
+    }
+
+    #[test]
+    fn test_tokenize_keywords() {
+        let input = "if else true false return";
+        let mut tokens = Lexer::new(input);
+
+        let expected = vec![
+            Token::If,
+            Token::Else,
+            Token::Bool(true),
+            Token::Bool(false),
+            Token::Ret,
+            Token::EOF,
+        ];
+
+        for token_expected in expected.iter() {
+            let token = tokens.next_token();
+            assert_eq!(&token, token_expected);
+        }
+    }
+
+    #[test]
+    fn test_tokenize_program() {
         let input = "let five = 5; \
-                           let ten = 10; \
-                           let add = fn(x,y) { \
-                           x+y; \
-                           } \
-                           let result = add(five, ten);";
+                     let ten = 10; \
+                     let add = fn(x, y) { x + y;}; \
+                     let result = add(five, ten);";
+
         let mut tokens = Lexer::new(input);
 
         let expected = vec![
@@ -158,6 +235,7 @@ mod tests {
             Token::Ident("y".to_string()),
             Token::Semicolon,
             Token::RBrace,
+            Token::Semicolon,
             Token::Let,
             Token::Ident("result".to_string()),
             Token::Assign,
@@ -168,9 +246,23 @@ mod tests {
             Token::Ident("ten".to_string()),
             Token::RParen,
             Token::Semicolon,
+            Token::EOF,
         ];
 
-        for token_expected in &expected {
+        for token_expected in expected.iter() {
+            let token = tokens.next_token();
+            assert_eq!(&token, token_expected);
+        }
+    }
+
+    #[test]
+    fn test_tokenize_string() {
+        let input = "\"foobar\"";
+        let mut tokens = Lexer::new(input);
+
+        let expected = vec![Token::String("foobar".to_string())];
+
+        for token_expected in expected.iter() {
             let token = tokens.next_token();
             assert_eq!(&token, token_expected);
         }
