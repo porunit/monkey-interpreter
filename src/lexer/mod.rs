@@ -1,8 +1,7 @@
-use std::io::ErrorKind::TimedOut;
 use crate::token::Token;
 
 #[derive(Default)]
-struct Lexer {
+pub struct Lexer {
     input: Vec<char>,
     position: usize,
     read_position: usize,
@@ -19,9 +18,8 @@ impl Lexer {
         lexer
     }
 
-    fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
-        println!("{}", self.ch);
         let token = match self.ch {
             '=' => {
                 if self.peak_char() == '=' {
@@ -76,7 +74,6 @@ impl Lexer {
                 }
             }
         };
-
         self.read_char();
         token
     }
